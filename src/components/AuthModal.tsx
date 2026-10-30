@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
-import { X, Lock, User, Mail, LogIn, UserPlus, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, AlertCircle, ShieldCheck } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,69 +10,35 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
-      if (isSignUp) {
-        const res = await authClient.signUp.email({
-          email,
-          password,
-          name: name || email.split("@")[0],
-        });
-
-        if (res.error) {
-          setError(res.error.message || "Sign up failed");
-        } else {
-          setSuccess("Account created successfully!");
-          setTimeout(() => {
-            onClose();
-          }, 1200);
-        }
-      } else {
-        const res = await authClient.signIn.email({
-          email,
-          password,
-        });
-
-        if (res.error) {
-          setError(res.error.message || "Invalid credentials");
-        } else {
-          setSuccess("Signed in successfully!");
-          setTimeout(() => {
-            onClose();
-          }, 1200);
-        }
-      }
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: typeof window !== "undefined" ? window.location.origin : undefined,
+      });
     } catch (err: unknown) {
-      setError((err as Error).message || "An error occurred");
-    } finally {
+      setError((err as Error).message || "Failed to initiate Google sign in");
       setLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-      <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-slate-900 dark:text-slate-100">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+      <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-3">
           <div className="flex items-center gap-2">
-            <Lock className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-              {isSignUp ? "Create Admin Account" : "Neon Admin Sign In"}
-            </h2>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Admin Authentication</h2>
           </div>
           <button
             onClick={onClose}
@@ -82,118 +48,56 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </button>
         </div>
 
-        <p className="mt-3 text-xs text-slate-500">
-          Powered by <strong>Neon Auth (Managed Better Auth)</strong>. Protects bill records and tenant contact info on water.dish.place.
+        <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+          Sign in with your Google account to manage meter readings, view building bills, and notify tenants on water.dish.place.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {isSignUp && (
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Your Name</label>
-              <div className="mt-1 relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <User className="h-4 w-4 text-slate-400" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Property Owner"
-                  className="w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                />
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-            <div className="mt-1 relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Mail className="h-4 w-4 text-slate-400" />
-              </div>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@dish.place"
-                className="w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
+        {error && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-800 dark:bg-red-950 dark:text-red-200">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Password</label>
-            <div className="mt-1 relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Lock className="h-4 w-4 text-slate-400" />
-              </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-800 dark:bg-red-950 dark:text-red-200">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>{success}</span>
-            </div>
-          )}
-
+        <div className="mt-6">
           <button
-            type="submit"
+            type="button"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-sky-700 disabled:opacity-50"
+            onClick={handleGoogleSignIn}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xs hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
-            {isSignUp ? <UserPlus className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-            {loading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
+            {loading ? (
+              <span className="text-xs text-slate-500">Redirecting to Google...</span>
+            ) : (
+              <>
+                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.97 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </>
+            )}
           </button>
-        </form>
+        </div>
 
-        <div className="mt-4 border-t border-slate-200 pt-3 text-center text-xs text-slate-500 dark:border-slate-800">
-          {isSignUp ? (
-            <p>
-              Already have an account?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(false);
-                  setError(null);
-                }}
-                className="font-semibold text-sky-600 hover:underline dark:text-sky-400"
-              >
-                Sign In
-              </button>
-            </p>
-          ) : (
-            <p>
-              Need an admin account?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(true);
-                  setError(null);
-                }}
-                className="font-semibold text-sky-600 hover:underline dark:text-sky-400"
-              >
-                Create Account
-              </button>
-            </p>
-          )}
+        <div className="mt-4 text-center">
+          <span className="text-[11px] text-slate-400">
+            Secure single sign-on via Google OAuth
+          </span>
         </div>
       </div>
     </div>

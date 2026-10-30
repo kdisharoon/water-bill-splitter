@@ -1,7 +1,7 @@
 "use client";
 
 import { MonthRecord, TenantSettings } from "@/types";
-import { History, Calendar, Trash2, Edit3, Send, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { History, Calendar, Trash2, Edit3, Send, CheckCircle2, Clock, Camera, FileText } from "lucide-react";
 
 interface HistoryTableProps {
   records: MonthRecord[];
@@ -84,6 +84,28 @@ export default function HistoryTable({
                         <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:bg-sky-900 dark:text-sky-300">
                           Editing
                         </span>
+                      )}
+                      {r.meterPhotoUrl && (
+                        <a
+                          href={r.meterPhotoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="View attached meter photo"
+                          className="rounded p-1 text-sky-600 hover:bg-sky-100 dark:text-sky-400"
+                        >
+                          <Camera className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      {r.billPdfUrl && (
+                        <a
+                          href={r.billPdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="View attached water bill statement"
+                          className="rounded p-1 text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </a>
                       )}
                     </div>
                   </td>

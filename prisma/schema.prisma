@@ -1,6 +1,7 @@
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 generator client {
@@ -30,6 +31,10 @@ model MonthRecord {
   floor2Ratio       Float?    // Floor 2 usage ratio (0.0 to 1.0)
   floor1Cost        Float?    // Floor 1 bill amount in dollars
   floor2Cost        Float?    // Floor 2 bill amount in dollars
+  
+  // Attachments in Neon Object Storage
+  meterPhotoKey     String?   // S3 key in assets bucket for meter reading photo
+  billPdfKey        String?   // S3 key in assets bucket for water bill document
   
   // Workflow status: READINGS_ENTERED, READY, NOTIFIED
   status            String    @default("READINGS_ENTERED")

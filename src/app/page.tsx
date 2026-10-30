@@ -6,7 +6,9 @@ import CurrentMonthCard from "@/components/CurrentMonthCard";
 import HistoryTable from "@/components/HistoryTable";
 import TenantSettingsModal from "@/components/TenantSettingsModal";
 import NotificationModal from "@/components/NotificationModal";
-import { Droplets, Settings, Globe, RefreshCw } from "lucide-react";
+import AuthModal from "@/components/AuthModal";
+import { authClient } from "@/lib/auth/client";
+import { Droplets, Settings, Globe, RefreshCw, User, LogIn, LogOut } from "lucide-react";
 
 // Calculate previous month string (e.g. "2026-10" -> "2026-09")
 function getPreviousMonthString(monthStr: string): string {
@@ -43,7 +45,10 @@ export default function Home() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [notifyModalRecord, setNotifyModalRecord] = useState<MonthRecord | null>(null);
+
+  const { data: session } = authClient.useSession();
 
   const fetchRecordsAndSettings = useCallback(async () => {
     try {
@@ -141,6 +146,32 @@ export default function Home() {
               <Settings className="h-3.5 w-3.5 text-slate-500" />
               <span>Tenant Settings</span>
             </button>
+
+            {session?.user ? (
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-1.5 text-xs dark:border-emerald-900 dark:bg-emerald-950/40">
+                <User className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-medium text-emerald-900 dark:text-emerald-200">
+                  {session.user.name || session.user.email}
+                </span>
+                <button
+                  onClick={async () => {
+                    await authClient.signOut();
+                  }}
+                  title="Sign out"
+                  className="ml-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-700"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                <span>Admin Login</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -174,6 +205,11 @@ export default function Home() {
       </main>
 
       {/* Modals */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
+
       <TenantSettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}

@@ -15,6 +15,10 @@ export interface MonthRecord {
   floor2Ratio?: number | null;
   floor1Cost?: number | null;
   floor2Cost?: number | null;
+  meterPhotoKey?: string | null;
+  meterPhotoUrl?: string | null;
+  billPdfKey?: string | null;
+  billPdfUrl?: string | null;
   status: "READINGS_ENTERED" | "READY" | "NOTIFIED" | string;
   notes?: string | null;
   readingsEnteredAt?: string | null;

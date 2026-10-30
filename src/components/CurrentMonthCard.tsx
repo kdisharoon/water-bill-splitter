@@ -14,6 +14,10 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Camera,
+  FileText,
+  Upload,
+  ExternalLink,
 } from "lucide-react";
 
 interface CurrentMonthCardProps {
@@ -44,6 +48,12 @@ export default function CurrentMonthCard({
   const [floor1Vacant, setFloor1Vacant] = useState<boolean>(false);
   const [floor2Vacant, setFloor2Vacant] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>("");
+  const [meterPhotoKey, setMeterPhotoKey] = useState<string>("");
+  const [meterPhotoUrl, setMeterPhotoUrl] = useState<string>("");
+  const [billPdfKey, setBillPdfKey] = useState<string>("");
+  const [billPdfUrl, setBillPdfUrl] = useState<string>("");
+  const [uploadingMeter, setUploadingMeter] = useState<boolean>(false);
+  const [uploadingBill, setUploadingBill] = useState<boolean>(false);
   const [showPrevOverride, setShowPrevOverride] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
@@ -57,6 +67,10 @@ export default function CurrentMonthCard({
       setFloor1Vacant(Boolean(record.floor1Vacant));
       setFloor2Vacant(Boolean(record.floor2Vacant));
       setNotes(record.notes || "");
+      setMeterPhotoKey(record.meterPhotoKey || "");
+      setMeterPhotoUrl(record.meterPhotoUrl || "");
+      setBillPdfKey(record.billPdfKey || "");
+      setBillPdfUrl(record.billPdfUrl || "");
       setPrevTotalMeter(
         record.prevTotalMeter !== null && record.prevTotalMeter !== undefined
           ? String(record.prevTotalMeter)
@@ -78,6 +92,10 @@ export default function CurrentMonthCard({
       setFloor1Vacant(false);
       setFloor2Vacant(false);
       setNotes("");
+      setMeterPhotoKey("");
+      setMeterPhotoUrl("");
+      setBillPdfKey("");
+      setBillPdfUrl("");
       setPrevTotalMeter(previousRecord?.totalMeter !== undefined ? String(previousRecord.totalMeter) : "");
       setPrevFloor2Meter(previousRecord?.floor2Meter !== undefined ? String(previousRecord.floor2Meter) : "");
     }
@@ -104,6 +122,43 @@ export default function CurrentMonthCard({
     });
   }, [totalMeter, floor2Meter, prevTotalMeter, prevFloor2Meter, totalBill, floor1Vacant, floor2Vacant]);
 
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, category: "meter" | "bill") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (category === "meter") setUploadingMeter(true);
+    else setUploadingBill(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("billingMonth", selectedMonth);
+      formData.append("category", category);
+
+      const res = await fetch("/api/storage", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      if (category === "meter") {
+        setMeterPhotoKey(data.key);
+        setMeterPhotoUrl(data.url);
+      } else {
+        setBillPdfKey(data.key);
+        setBillPdfUrl(data.url);
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Failed to upload file to Neon Object Storage.");
+    } finally {
+      if (category === "meter") setUploadingMeter(false);
+      else setUploadingBill(false);
+    }
+  };
+
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!totalMeter || !floor2Meter) return;
@@ -121,6 +176,8 @@ export default function CurrentMonthCard({
         totalBill: totalBill !== "" ? parseFloat(totalBill) : null,
         floor1Vacant,
         floor2Vacant,
+        meterPhotoKey: meterPhotoKey || null,
+        billPdfKey: billPdfKey || null,
         notes: notes || null,
       };
 
@@ -256,6 +313,51 @@ export default function CurrentMonthCard({
               </div>
             </div>
 
+            {/* Meter Photo Attachment (Neon Object Storage) */}
+            <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <Camera className="h-4 w-4 text-sky-500" />
+                  Meter Dial Photo
+                </span>
+                {meterPhotoUrl ? (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={meterPhotoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline dark:text-sky-400"
+                    >
+                      <span>View Photo</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMeterPhotoKey("");
+                        setMeterPhotoUrl("");
+                      }}
+                      className="text-[11px] text-red-500 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-700 cursor-pointer dark:text-sky-400">
+                    <Upload className="h-3 w-3" />
+                    <span>{uploadingMeter ? "Uploading..." : "Attach Photo"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={uploadingMeter}
+                      onChange={(e) => handleUploadFile(e, "meter")}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
             {/* Baseline / Previous Month Reference */}
             <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
               <button
@@ -360,6 +462,51 @@ export default function CurrentMonthCard({
               <p className="mt-1 text-[11px] text-slate-500">
                 Enter when received. Leave blank on 1st-2nd if only recording meter readings.
               </p>
+            </div>
+
+            {/* Bill Document Attachment (Neon Object Storage) */}
+            <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <FileText className="h-4 w-4 text-emerald-500" />
+                  Utility Bill Statement (PDF / Image)
+                </span>
+                {billPdfUrl ? (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={billPdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                      <span>View Statement</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBillPdfKey("");
+                        setBillPdfUrl("");
+                      }}
+                      className="text-[11px] text-red-500 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer dark:text-emerald-400">
+                    <Upload className="h-3 w-3" />
+                    <span>{uploadingBill ? "Uploading..." : "Attach Statement"}</span>
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      disabled={uploadingBill}
+                      onChange={(e) => handleUploadFile(e, "bill")}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
             </div>
 
             {/* Vacancy Checkboxes */}

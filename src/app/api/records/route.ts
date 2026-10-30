@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { calculateWaterBill } from "@/lib/calculations";
+import { getPresignedUrl } from "@/lib/storage";
 
 // Helper to find previous month string (e.g., "2026-10" -> "2026-09")
 function getPreviousMonthString(billingMonth: string): string {
@@ -16,9 +17,39 @@ function getPreviousMonthString(billingMonth: string): string {
 
 export async function GET() {
   try {
-    const records = await prisma.monthRecord.findMany({
+    const rawRecords = await prisma.monthRecord.findMany({
       orderBy: { billingMonth: "desc" },
     });
+
+    // Attach fresh presigned URLs for any files in Neon Object Storage
+    const records = await Promise.all(
+      rawRecords.map(async (r) => {
+        let meterPhotoUrl: string | null = null;
+        let billPdfUrl: string | null = null;
+
+        if (r.meterPhotoKey) {
+          try {
+            meterPhotoUrl = await getPresignedUrl(r.meterPhotoKey, 86400);
+          } catch {
+            // ignore
+          }
+        }
+
+        if (r.billPdfKey) {
+          try {
+            billPdfUrl = await getPresignedUrl(r.billPdfKey, 86400);
+          } catch {
+            // ignore
+          }
+        }
+
+        return {
+          ...r,
+          meterPhotoUrl,
+          billPdfUrl,
+        };
+      })
+    );
 
     let settings = await prisma.tenantSettings.findUnique({
       where: { id: "default" },
@@ -48,6 +79,8 @@ export async function POST(request: Request) {
       floor1Vacant = false,
       floor2Vacant = false,
       notes,
+      meterPhotoKey,
+      billPdfKey,
     } = body;
 
     if (!billingMonth || totalMeter === undefined || floor2Meter === undefined) {
@@ -110,6 +143,8 @@ export async function POST(request: Request) {
         floor2Ratio: calcResult.floor2Ratio,
         floor1Cost: calcResult.floor1Cost,
         floor2Cost: calcResult.floor2Cost,
+        meterPhotoKey: meterPhotoKey ?? null,
+        billPdfKey: billPdfKey ?? null,
         status: calcResult.status,
         notes: notes ?? null,
         readingsEnteredAt: now,
@@ -130,6 +165,8 @@ export async function POST(request: Request) {
         floor2Ratio: calcResult.floor2Ratio,
         floor1Cost: calcResult.floor1Cost,
         floor2Cost: calcResult.floor2Cost,
+        meterPhotoKey: meterPhotoKey !== undefined ? meterPhotoKey : existing?.meterPhotoKey,
+        billPdfKey: billPdfKey !== undefined ? billPdfKey : existing?.billPdfKey,
         status: existing?.status === "NOTIFIED" && billAmount === existing.totalBill ? "NOTIFIED" : calcResult.status,
         notes: notes ?? existing?.notes,
         readingsEnteredAt: existing?.readingsEnteredAt ?? now,

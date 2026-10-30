@@ -1,0 +1,65 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model MonthRecord {
+  id                String    @id @default(cuid())
+  billingMonth      String    @unique // Format: YYYY-MM e.g. "2026-10"
+  
+  // Meter readings (entered ~1st-2nd of month)
+  totalMeter        Float     // Current total meter reading
+  floor2Meter       Float     // Current second floor meter reading
+  prevTotalMeter    Float?    // Previous total meter reading
+  prevFloor2Meter   Float?    // Previous second floor meter reading
+  
+  // Calculated water usage
+  totalUsage        Float?    // Delta total = totalMeter - prevTotalMeter
+  floor2Usage       Float?    // Delta floor 2 = floor2Meter - prevFloor2Meter
+  floor1Usage       Float?    // Delta floor 1 = totalUsage - floor2Usage
+  
+  // Total bill & calculation (entered ~5th-6th of month)
+  totalBill         Float?    // Total water bill in dollars
+  floor1Vacant      Boolean   @default(false)
+  floor2Vacant      Boolean   @default(false)
+  floor1Ratio       Float?    // Floor 1 usage ratio (0.0 to 1.0)
+  floor2Ratio       Float?    // Floor 2 usage ratio (0.0 to 1.0)
+  floor1Cost        Float?    // Floor 1 bill amount in dollars
+  floor2Cost        Float?    // Floor 2 bill amount in dollars
+  
+  // Workflow status: READINGS_ENTERED, READY, NOTIFIED
+  status            String    @default("READINGS_ENTERED")
+  notes             String?
+  
+  // Timestamps
+  readingsEnteredAt DateTime?
+  billEnteredAt     DateTime?
+  floor1NotifiedAt  DateTime?
+  floor2NotifiedAt  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model TenantSettings {
+  id               String   @id @default("default")
+  unit1Name        String   @default("Apartment 1 (1st Floor)")
+  unit1Email       String?
+  unit1Phone       String?
+  unit1Carrier     String?  // e.g. verizon, att, tmobile, sprint, uscellular, boost, cricket, metro
+  unit1NotifyEmail Boolean  @default(true)
+  unit1NotifySms   Boolean  @default(true)
+
+  unit2Name        String   @default("Apartment 2 (2nd Floor)")
+  unit2Email       String?
+  unit2Phone       String?
+  unit2Carrier     String?
+  unit2NotifyEmail Boolean  @default(true)
+  unit2NotifySms   Boolean  @default(true)
+
+  senderEmail      String?  @default("water@dish.place")
+  updatedAt        DateTime @updatedAt
+}

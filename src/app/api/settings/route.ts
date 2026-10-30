@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { checkAdminSession } from "@/lib/auth/check";
 
 export async function GET() {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     let settings = await prisma.tenantSettings.findUnique({
       where: { id: "default" },
     });
@@ -22,6 +28,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const body = await request.json();
     const {
       unit1Name,

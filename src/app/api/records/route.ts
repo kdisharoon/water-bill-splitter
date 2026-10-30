@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { calculateWaterBill } from "@/lib/calculations";
 import { getPresignedUrl } from "@/lib/storage";
+import { checkAdminSession } from "@/lib/auth/check";
 
 // Helper to find previous month string (e.g., "2026-10" -> "2026-09")
 function getPreviousMonthString(billingMonth: string): string {
@@ -17,6 +18,11 @@ function getPreviousMonthString(billingMonth: string): string {
 
 export async function GET() {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const rawRecords = await prisma.monthRecord.findMany({
       orderBy: { billingMonth: "desc" },
     });
@@ -70,6 +76,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const body = await request.json();
     const {
       billingMonth,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/db";
+import { checkAdminSession } from "@/lib/auth/check";
 import {
   getEmailToSmsAddress,
   formatSmsMessage,
@@ -17,6 +18,11 @@ function formatMonthReadable(billingMonth: string): string {
 
 export async function POST(request: Request) {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const body = await request.json();
     const { recordId, sendUnit1 = true, sendUnit2 = true } = body;
 

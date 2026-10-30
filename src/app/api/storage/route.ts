@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { uploadObject, getPresignedUrl, deleteObject } from "@/lib/storage";
+import { checkAdminSession } from "@/lib/auth/check";
 
 export async function POST(request: Request) {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const billingMonth = (formData.get("billingMonth") as string) || "general";
@@ -35,6 +41,11 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const key = searchParams.get("key");
 
@@ -52,6 +63,11 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const authCheck = await checkAdminSession();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const key = searchParams.get("key");
 

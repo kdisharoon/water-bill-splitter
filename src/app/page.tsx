@@ -179,7 +179,7 @@ export default function Home() {
               <span>Admin Authentication Required</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              This billing dashboard and tenant contact data are private and restricted to authorized management (<span className="font-semibold text-slate-800 dark:text-slate-200">{AUTHORIZED_ADMIN_EMAIL}</span>).
+              This billing dashboard and tenant contact data are private and restricted to authorized management.
             </p>
           </div>
 
@@ -234,7 +234,7 @@ export default function Home() {
           </p>
 
           <div className="my-5 rounded-xl bg-red-50 p-4 text-xs text-red-800 dark:bg-red-950/40 dark:text-red-300 border border-red-200/80 dark:border-red-900/50 text-left">
-            This application is restricted. Only <strong>{AUTHORIZED_ADMIN_EMAIL}</strong> has permissions to access water bill records.
+            This application is restricted. Your account does not have permission to access water bill records.
           </div>
 
           <button
